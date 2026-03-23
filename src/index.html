@@ -96,22 +96,68 @@
     #speech-bubble a { color: #7EB8DA; }
     #speech-bubble .cursor { display: inline-block; width: 6px; height: 12px; background: #C4876A; animation: blink-cursor 0.8s infinite; vertical-align: text-bottom; margin-left: 2px; }
     @keyframes blink-cursor { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
-    #state-label {
+    #status-bar {
       position: absolute;
       bottom: 2px;
       left: 50%;
       transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-family: 'SF Mono', 'Courier New', monospace;
       font-size: 8px;
       color: rgba(255,255,255,0.7);
       background: rgba(0,0,0,0.55);
-      padding: 2px 10px;
+      padding: 3px 10px;
       border-radius: 10px;
       white-space: nowrap;
       -webkit-app-region: no-drag;
       pointer-events: none;
       backdrop-filter: blur(4px);
     }
+    #food-bar {
+      display: flex;
+      gap: 1px;
+      align-items: center;
+    }
+    #food-bar .food-pip {
+      width: 4px;
+      height: 8px;
+      border-radius: 1px;
+      background: #5CB85C;
+      transition: background 0.3s, opacity 0.3s;
+    }
+    #food-bar .food-pip.low { background: #F0AD4E; }
+    #food-bar .food-pip.critical { background: #D9534F; }
+    #food-bar .food-pip.empty { background: rgba(255,255,255,0.1); }
+    #rename-overlay {
+      display: none;
+      position: absolute;
+      bottom: 155px;
+      left: 10px;
+      right: 10px;
+      background: rgba(20, 20, 30, 0.9);
+      border: 1px solid rgba(196, 135, 106, 0.4);
+      border-radius: 10px;
+      padding: 10px;
+      -webkit-app-region: no-drag;
+      pointer-events: auto;
+      backdrop-filter: blur(8px);
+    }
+    #rename-overlay.visible { display: block; animation: bubble-in 0.2s ease-out; }
+    #rename-input {
+      width: 100%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(196, 135, 106, 0.3);
+      border-radius: 6px;
+      color: #e8e0d8;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-size: 12px;
+      padding: 6px 8px;
+      outline: none;
+    }
+    #rename-input::placeholder { color: rgba(255,255,255,0.3); }
+    #rename-input:focus { border-color: #C4876A; }
     .sub-agent {
       position: absolute;
       transition: all 0.3s ease;
@@ -169,10 +215,9 @@
             25% { transform: rotate(-5deg); }
             75% { transform: rotate(5deg); }
           }
-          @keyframes wiggle-drag {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(-14deg); }
-            75% { transform: rotate(14deg); }
+          @keyframes carried {
+            0%, 100% { transform: rotate(-5deg) scaleY(1.05) scaleX(0.96); }
+            50% { transform: rotate(5deg) scaleY(1.05) scaleX(0.96); }
           }
           @keyframes squish-land {
             0%   { transform: scaleY(1.2) scaleX(0.85) translateY(-6px); }
@@ -187,7 +232,7 @@
           #pet-body.composing  { animation: compose-nod 1.8s ease-in-out infinite; }
           #pet-body.planning   { animation: plan-look 3s ease-in-out infinite; }
           #pet-body.subagents  { animation: sway 2s ease-in-out infinite; }
-          #pet-body.dragging   { animation: wiggle-drag 0.2s ease-in-out infinite; }
+          #pet-body.dragging   { animation: carried 0.6s ease-in-out infinite; }
           #pet-body.dropped    { animation: squish-land 0.4s ease-out forwards; }
         </style>
       </defs>
@@ -273,12 +318,14 @@
         </g>
       </g>
 
-      <!-- Drag effects -->
+      <!-- Drag effects - motion lines only -->
       <g id="drag-effects" style="display:none;">
-        <rect x="122" y="20" width="6" height="6" fill="#87CEEB" opacity="0.7"/>
-        <rect x="122" y="26" width="6" height="6" fill="#87CEEB" opacity="0.4"/>
-        <rect x="8" y="18" width="10" height="3" fill="#C4876A" opacity="0.6"/>
-        <rect x="122" y="18" width="10" height="3" fill="#C4876A" opacity="0.6"/>
+        <rect class="drag-line" x="6" y="38" width="10" height="2" fill="#C4876A" opacity="0.3" rx="1"/>
+        <rect class="drag-line" x="4" y="48" width="12" height="2" fill="#C4876A" opacity="0.25" rx="1"/>
+        <rect class="drag-line" x="8" y="58" width="8" height="2" fill="#C4876A" opacity="0.2" rx="1"/>
+        <rect class="drag-line" x="124" y="38" width="10" height="2" fill="#C4876A" opacity="0.3" rx="1"/>
+        <rect class="drag-line" x="122" y="48" width="12" height="2" fill="#C4876A" opacity="0.25" rx="1"/>
+        <rect class="drag-line" x="126" y="58" width="8" height="2" fill="#C4876A" opacity="0.2" rx="1"/>
       </g>
 
       <!-- Drop poof -->
@@ -313,12 +360,19 @@
 
     </svg>
 
+    <div id="rename-overlay">
+      <input id="rename-input" type="text" placeholder="Name your pet..." maxlength="20" />
+    </div>
     <div id="bubble-wrap">
       <button id="bubble-close">&times;</button>
       <div id="speech-bubble"></div>
     </div>
     <div id="sub-agents"></div>
-    <div id="state-label">idle</div>
+    <div id="status-bar">
+      <span id="pet-name">Clawd</span>
+      <span id="state-label">idle</span>
+      <div id="food-bar"></div>
+    </div>
   </div>
 
   <script src="renderer.js"></script>

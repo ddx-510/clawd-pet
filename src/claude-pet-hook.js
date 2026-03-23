@@ -2,6 +2,7 @@
 
 // Claude Code Hook -> Claude Pet state bridge
 // Writes pet state + messages to /tmp/claude-pet-state
+// Food/quota is handled by clawd-statusline.js via the statusLine feature
 
 const fs = require('fs');
 
@@ -9,9 +10,7 @@ const STATE_FILE = '/tmp/claude-pet-state';
 
 const readStdin = async () => {
   const chunks = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(chunk);
-  }
+  for await (const chunk of process.stdin) chunks.push(chunk);
   return Buffer.concat(chunks).toString('utf8');
 };
 
@@ -33,17 +32,12 @@ const mapToolToState = (toolName) => {
   return 'composing';
 };
 
-
 const main = async () => {
   const raw = await readStdin();
   if (!raw) { process.exit(0); }
 
   let input;
-  try {
-    input = JSON.parse(raw);
-  } catch {
-    process.exit(0);
-  }
+  try { input = JSON.parse(raw); } catch { process.exit(0); }
 
   const hook = input.hook_event_name || '';
 

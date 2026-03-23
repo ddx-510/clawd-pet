@@ -1,6 +1,9 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+
+const CONFIG_PATH = path.join(os.homedir(), '.clawd-config.json');
 
 const STATE_FILE = '/tmp/claude-pet-state';
 
@@ -32,29 +35,40 @@ function createWindow() {
   mainWindow.setIgnoreMouseEvents(false);
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
-  // Detect drag via window move events
-  let moveTimer = null;
-  mainWindow.on('will-move', () => {
-    clearTimeout(moveTimer);
-    if (!isDragging) {
-      isDragging = true;
-      mainWindow.webContents.send('drag-start');
-    }
-    moveTimer = setTimeout(() => {
-      if (isDragging) {
+  // Detect drag by polling window position
+  // Compare position every 100ms - if it changed, we're being dragged
+  // If position stable for 600ms, drag ended (user released)
+  let lastX = 0, lastY = 0;
+  let stableCount = 0;
+
+  setInterval(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const [x, y] = mainWindow.getPosition();
+    const moved = (x !== lastX || y !== lastY);
+    lastX = x;
+    lastY = y;
+
+    if (moved) {
+      stableCount = 0;
+      if (!isDragging) {
+        isDragging = true;
+        // Send mouse position relative to window so renderer knows grab point
+        const point = screen.getCursorScreenPoint();
+        const bounds = mainWindow.getBounds();
+        mainWindow.webContents.send('drag-start', {
+          x: point.x - bounds.x,
+          y: point.y - bounds.y,
+        });
+      }
+    } else if (isDragging) {
+      stableCount++;
+      // 6 * 100ms = 600ms of no movement = drop
+      if (stableCount >= 6) {
         isDragging = false;
         mainWindow.webContents.send('drag-end');
       }
-    }, 200);
-  });
-
-  mainWindow.on('moved', () => {
-    clearTimeout(moveTimer);
-    if (isDragging) {
-      isDragging = false;
-      mainWindow.webContents.send('drag-end');
     }
-  });
+  }, 100);
 
   ipcMain.on('set-pet-state', (_, state) => {
     mainWindow.webContents.send('state-change', state);
@@ -80,13 +94,33 @@ function createWindow() {
 
   // Right-click context menu
   ipcMain.on('show-context-menu', () => {
+    let currentName = 'Clawd';
+    try {
+      const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+      if (cfg.name) currentName = cfg.name;
+    } catch (_) {}
+
     const petMenu = Menu.buildFromTemplate([
-      { label: 'Clawd', enabled: false },
+      { label: currentName, enabled: false },
       { type: 'separator' },
+      {
+        label: 'Rename...',
+        click: () => mainWindow.webContents.send('show-rename'),
+      },
       { label: 'Hide', accelerator: 'CmdOrCtrl+Shift+P', click: () => mainWindow.hide() },
       { label: 'Quit', click: () => app.quit() },
     ]);
     petMenu.popup({ window: mainWindow });
+  });
+
+  // Save name from renderer
+  ipcMain.on('save-name', (_, name) => {
+    try {
+      let cfg = {};
+      try { cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch (_) {}
+      cfg.name = name;
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+    } catch (_) {}
   });
 
   // Mouse position for eye tracking

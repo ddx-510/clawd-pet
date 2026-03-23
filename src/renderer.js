@@ -1,4 +1,7 @@
 const { ipcRenderer } = require('electron');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 // ==========================================
 // STATE: idle | working | dancing | sleeping
@@ -339,9 +342,23 @@ function doJump() {
 }
 
 // ==========================================
+// EYE TRACKING
+// ==========================================
+ipcRenderer.on('mouse-position', (_, pos) => {
+  if (isDragging || state !== 'idle') return;
+  const dx = pos.x - 150, dy = pos.y - 200;
+  const ox = dx > 40 ? 2 : dx < -40 ? -2 : 0;
+  const oy = dy > 40 ? 2 : dy < -40 ? -2 : 0;
+  eyeL.setAttribute('x', L_EYE_X + ox);
+  eyeL.setAttribute('y', L_EYE_Y + oy);
+  eyeR.setAttribute('x', R_EYE_X + ox);
+  eyeR.setAttribute('y', R_EYE_Y + oy);
+});
+
+// ==========================================
 // DRAG / DROP
 // ==========================================
-ipcRenderer.on('drag-start', () => {
+ipcRenderer.on('drag-start', (_, grabPos) => {
   if (isDragging) return;
   isDragging = true;
   clearIdleTimers();
@@ -349,22 +366,47 @@ ipcRenderer.on('drag-start', () => {
   if (state === 'sleeping') { zzzFx.style.display = 'none'; ipcRenderer.send('slide-up'); }
   if (state === 'dancing') clearTimeout(danceStopTimer);
 
-  petBody.className.baseVal = 'dragging';
+  clearVisual();
+  stateLabel.textContent = 'wheee!';
+  resetLegs();
+
+  // Convert window coords (300x360) to SVG viewBox coords (0-140)
+  // SVG element is 140px wide, centered in 300px window, at the bottom
+  const svgEl = document.getElementById('pet-svg');
+  const svgRect = svgEl.getBoundingClientRect();
+  const mx = grabPos?.x || 150;
+  const my = grabPos?.y || 250;
+  // Map to SVG viewBox (0-140)
+  const svgX = Math.max(0, Math.min(140, ((mx - svgRect.left) / svgRect.width) * 140));
+  const svgY = Math.max(0, Math.min(140, ((my - svgRect.top) / svgRect.height) * 140));
+
+  // Set transform-origin in SVG viewBox units
+  petBody.setAttribute('transform-origin', `${svgX} ${svgY}`);
+  petBody.style.transformOrigin = `${svgX}px ${svgY}px`;
+
+  dragFx.style.display = 'block';
+
+  // Eyes look toward grab point
+  const dx = svgX - 70;
+  const dy = svgY - 50;
+  const eyeOx = dx > 10 ? 2 : dx < -10 ? -2 : 0;
+  const eyeOy = dy > 10 ? 2 : dy < -10 ? -2 : -2;
+  eyeL.setAttribute('x', L_EYE_X + eyeOx);
+  eyeL.setAttribute('y', L_EYE_Y + eyeOy);
+  eyeR.setAttribute('x', R_EYE_X + eyeOx);
+  eyeR.setAttribute('y', R_EYE_Y + eyeOy);
+
+  // Carried sway pivoting from grab point
   petBody.style.transition = '';
   petBody.style.transform = '';
-  clearVisual();
-  dragFx.style.display = 'block';
-  stateLabel.textContent = 'wheee!';
-  eyeL.setAttribute('y', L_EYE_Y - 2);
-  eyeR.setAttribute('y', R_EYE_Y - 2);
-  legs.forEach((leg, i) => {
-    leg.style.transform = i % 2 === 0 ? 'rotate(-12deg)' : 'rotate(12deg)';
-  });
+  petBody.className.baseVal = 'dragging';
 });
 
 ipcRenderer.on('drag-end', () => {
   if (!isDragging) return;
   isDragging = false;
+  petBody.style.transformOrigin = '';
+  petBody.setAttribute('transform-origin', '');
   dragFx.style.display = 'none';
   dropFx.style.display = 'block';
   petBody.className.baseVal = 'dropped';
@@ -399,19 +441,6 @@ document.addEventListener('contextmenu', (e) => {
   ipcRenderer.send('show-context-menu');
 });
 
-// ==========================================
-// EYE TRACKING
-// ==========================================
-ipcRenderer.on('mouse-position', (_, pos) => {
-  if (state !== 'idle' || isDragging) return;
-  const dx = pos.x - 70, dy = pos.y - 70;
-  const ox = dx > 30 ? 2 : dx < -30 ? -2 : 0;
-  const oy = dy > 30 ? 2 : dy < -30 ? -2 : 0;
-  eyeL.setAttribute('x', L_EYE_X + ox);
-  eyeL.setAttribute('y', L_EYE_Y + oy);
-  eyeR.setAttribute('x', R_EYE_X + ox);
-  eyeR.setAttribute('y', R_EYE_Y + oy);
-});
 
 // (no manual mood switching - driven by hooks only)
 
@@ -517,6 +546,88 @@ function blink() {
 setTimeout(blink, 1500);
 
 // ==========================================
+// PET NAME
+// ==========================================
+const petNameEl = document.getElementById('pet-name');
+function loadPetName() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.clawd-config.json'), 'utf8'));
+    if (cfg.name && petNameEl) petNameEl.textContent = cfg.name;
+  } catch (_) {}
+}
+
+// ==========================================
+// RENAME
+// ==========================================
+const renameOverlay = document.getElementById('rename-overlay');
+const renameInput = document.getElementById('rename-input');
+
+ipcRenderer.on('show-rename', () => {
+  if (renameOverlay) {
+    renameOverlay.className = 'visible';
+    renameInput.value = petNameEl ? petNameEl.textContent : '';
+    renameInput.focus();
+    renameInput.select();
+  }
+});
+
+if (renameInput) {
+  renameInput.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      const name = renameInput.value.trim() || 'Clawd';
+      if (petNameEl) petNameEl.textContent = name;
+      ipcRenderer.send('save-name', name);
+      renameOverlay.className = '';
+    }
+    if (e.key === 'Escape') {
+      renameOverlay.className = '';
+    }
+  });
+}
+
+// ==========================================
+// FOOD BAR
+// ==========================================
+const FOOD_FILE = '/tmp/claude-pet-food';
+const FOOD_PIPS = 10;
+const foodBar = document.getElementById('food-bar');
+
+function initFoodBar() {
+  if (!foodBar) return;
+  foodBar.innerHTML = '';
+  for (let i = 0; i < FOOD_PIPS; i++) {
+    const pip = document.createElement('div');
+    pip.className = 'food-pip';
+    foodBar.appendChild(pip);
+  }
+}
+
+function updateFoodBar() {
+  if (!foodBar) return;
+  try {
+    const data = JSON.parse(fs.readFileSync(FOOD_FILE, 'utf8'));
+    const pct = Math.max(0, Math.min(100, data.food)) / 100;
+    const filled = Math.round(pct * FOOD_PIPS);
+    const pips = foodBar.querySelectorAll('.food-pip');
+    pips.forEach((pip, i) => {
+      if (i < filled) {
+        pip.className = 'food-pip';
+        if (pct <= 0.2) pip.classList.add('critical');
+        else if (pct <= 0.4) pip.classList.add('low');
+      } else {
+        pip.className = 'food-pip empty';
+      }
+    });
+  } catch (_) {}
+}
+
+// Poll food file
+initFoodBar();
+setInterval(updateFoodBar, 1000);
+
+// ==========================================
 // INIT
 // ==========================================
+loadPetName();
 enterIdle();
