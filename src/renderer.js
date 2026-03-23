@@ -10,14 +10,17 @@ const { ipcRenderer } = require('electron');
 //
 // ==========================================
 
-let state = 'idle';         // idle | working | dancing | sleeping
+let state = 'idle';         // idle | working | dancing | sleeping | done
 let workingVisual = 'thinking'; // which visual to show during working
+let lastHookState = 'idle';    // track last hook state for drag return
 let isDragging = false;
 
 let danceTimer = null;
 let danceStopTimer = null;
 let sleepTimer = null;
 let dropTimer = null;
+let doneTimer = null;
+let doneUntil = 0; // timestamp - ignore work hooks until this time
 
 const petBody   = document.getElementById('pet-body');
 const stateLabel = document.getElementById('state-label');
@@ -31,7 +34,11 @@ const sparkles  = document.getElementById('dance-sparkles');
 const dragFx    = document.getElementById('drag-effects');
 const dropFx    = document.getElementById('drop-effects');
 const zzzFx     = document.getElementById('zzz-effects');
+const doneFx    = document.getElementById('done-effects');
 const subAgents = document.getElementById('sub-agents');
+const bubbleWrap = document.getElementById('bubble-wrap');
+const bubble     = document.getElementById('speech-bubble');
+const bubbleClose = document.getElementById('bubble-close');
 
 const L_EYE_X = 53, L_EYE_Y = 42;
 const R_EYE_X = 81, R_EYE_Y = 42;
@@ -71,9 +78,94 @@ function clearIdleTimers() {
 // ==========================================
 function enterWorking(visual) {
   clearIdleTimers();
+  clearTimeout(doneTimer);
   state = 'working';
   workingVisual = visual;
   applyVisual(visual);
+}
+
+// ==========================================
+// ENTER DONE - show response then idle
+// ==========================================
+let streamInterval = null;
+
+function enterDone(message) {
+  clearIdleTimers();
+  clearTimeout(doneTimer);
+  clearInterval(streamInterval);
+  state = 'done';
+  // Protect done state from being overwritten by hooks for 8s
+  doneUntil = Date.now() + 8000;
+  petBody.className.baseVal = 'idle';
+  clearVisual();
+  resetEyes();
+  resetLegs();
+  stateLabel.textContent = 'done!';
+  doneFx.style.display = 'block';
+  animateDoneStars();
+  doJump();
+
+  if (bubble && message && message.trim()) {
+    showBubble();
+    bubble.innerHTML = '<span class="cursor"></span>';
+    streamMessage(message);
+  } else {
+    doneTimer = setTimeout(() => {
+      if (state === 'done') {
+        doneFx.style.display = 'none';
+        enterIdle();
+      }
+    }, 3000);
+  }
+}
+
+function showBubble() {
+  if (bubbleWrap) { bubbleWrap.style.display = 'block'; bubbleWrap.className = 'visible'; }
+}
+
+function hideBubble() {
+  if (bubbleWrap) { bubbleWrap.className = ''; bubbleWrap.style.display = 'none'; }
+  if (bubble) bubble.innerHTML = '';
+}
+
+function dismissDone() {
+  clearTimeout(doneTimer);
+  clearInterval(streamInterval);
+  hideBubble();
+  doneFx.style.display = 'none';
+  doneUntil = 0;
+  enterIdle();
+}
+
+function streamMessage(text) {
+  const { marked } = require('marked');
+  marked.setOptions({ breaks: true, gfm: true });
+
+  let charIndex = 0;
+  const speed = 15; // ms per character
+
+  streamInterval = setInterval(() => {
+    if (state !== 'done' || charIndex >= text.length) {
+      clearInterval(streamInterval);
+      // Remove cursor, render final markdown
+      if (bubble) {
+        bubble.innerHTML = marked.parse(text);
+        bubble.scrollTop = bubble.scrollHeight;
+      }
+      // Auto-dismiss after 8s (user can close earlier with X)
+      doneTimer = setTimeout(() => {
+        if (state === 'done') dismissDone();
+      }, 8000);
+      return;
+    }
+
+    charIndex += 2; // 2 chars at a time for speed
+    const partial = text.slice(0, charIndex);
+    if (bubble) {
+      bubble.innerHTML = marked.parse(partial) + '<span class="cursor"></span>';
+      bubble.scrollTop = bubble.scrollHeight;
+    }
+  }, speed);
 }
 
 // ==========================================
@@ -170,6 +262,9 @@ function clearVisual() {
   dragFx.style.display = 'none';
   dropFx.style.display = 'none';
   zzzFx.style.display = 'none';
+  doneFx.style.display = 'none';
+  hideBubble();
+  clearInterval(streamInterval);
   subAgents.innerHTML = '';
 }
 
@@ -189,25 +284,33 @@ function resetLegs() {
 // ==========================================
 // HOOK STATE CHANGES (from main.js watcher)
 // ==========================================
-ipcRenderer.on('state-change', (_, hookState) => {
+ipcRenderer.on('state-change', (_, hookState, args) => {
+  // Always track last hook state (for drag return)
+  lastHookState = hookState;
+
   if (isDragging) return;
 
-  if (hookState === 'idle') {
-    // Only go idle if we were working
-    if (state === 'working') enterIdle();
-    // If dancing or sleeping, ignore idle hooks
-  } else {
-    // Work state: thinking, composing, planning, subagents
-    if (state === 'dancing') {
-      clearTimeout(danceStopTimer);
-    }
-    if (state === 'sleeping') {
-      zzzFx.style.display = 'none';
-      resetEyes();
-      ipcRenderer.send('slide-up');
-    }
-    enterWorking(hookState);
+  if (hookState === 'done') {
+    enterDone(args);
+    return;
   }
+
+  // While done is showing, ignore work hooks
+  if (Date.now() < doneUntil) return;
+
+  if (hookState === 'idle') {
+    if (state === 'working') enterIdle();
+    return;
+  }
+
+  // Work state: thinking, composing, planning, subagents
+  if (state === 'dancing') clearTimeout(danceStopTimer);
+  if (state === 'sleeping') {
+    zzzFx.style.display = 'none';
+    resetEyes();
+    ipcRenderer.send('slide-up');
+  }
+  enterWorking(hookState);
 });
 
 // ==========================================
@@ -269,9 +372,24 @@ ipcRenderer.on('drag-end', () => {
   resetLegs();
   dropTimer = setTimeout(() => {
     dropFx.style.display = 'none';
-    enterIdle();
+    // Return to last known hook state
+    if (lastHookState === 'idle' || lastHookState === 'done') {
+      enterIdle();
+    } else {
+      enterWorking(lastHookState);
+    }
   }, 600);
 });
+
+// ==========================================
+// CLOSE BUBBLE BUTTON
+// ==========================================
+if (bubbleClose) {
+  bubbleClose.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dismissDone();
+  });
+}
 
 // ==========================================
 // RIGHT-CLICK MENU
@@ -335,6 +453,16 @@ function animateZzz() {
     z.setAttribute('opacity', 0.25 + Math.sin(t * 0.7 + i) * 0.25);
   });
   requestAnimationFrame(animateZzz);
+}
+
+function animateDoneStars() {
+  if (state !== 'done') return;
+  doneFx.querySelectorAll('.done-star').forEach((g, i) => {
+    const t = Date.now() / 400 + i * 1.2;
+    g.setAttribute('transform', `translate(${Math.cos(t * 0.8) * 3}, ${Math.sin(t) * 4})`);
+    g.setAttribute('opacity', Math.max(0.2, 0.5 + Math.sin(t * 1.3) * 0.4));
+  });
+  requestAnimationFrame(animateDoneStars);
 }
 
 // ==========================================

@@ -12,10 +12,10 @@ function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
   mainWindow = new BrowserWindow({
-    width: 140,
-    height: 160,
-    x: width - 170,
-    y: height - 180,
+    width: 300,
+    height: 360,
+    x: width - 320,
+    y: height - 380,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -65,8 +65,8 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const bounds = mainWindow.getBounds();
     const { height } = screen.getPrimaryDisplay().workAreaSize;
-    // Slide down so top 65px visible (eyes peeking, still clickable)
-    const targetY = height - 65;
+    // Slide down so top ~210px hidden, pet eyes peek at bottom
+    const targetY = height - 230;
     animateWindowY(bounds.y, targetY, 400);
   });
 
@@ -74,7 +74,7 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const bounds = mainWindow.getBounds();
     const { height } = screen.getPrimaryDisplay().workAreaSize;
-    const targetY = height - 180;
+    const targetY = height - 380;
     animateWindowY(bounds.y, targetY, 300);
   });
 
@@ -143,7 +143,6 @@ function watchStateFile() {
       lastTimestamp = data.timestamp;
 
       if (data.state === 'idle') {
-        // Debounce idle: wait 3s before telling the pet
         if (lastSentState !== 'idle') {
           clearTimeout(idleDebounceTimer);
           idleDebounceTimer = setTimeout(() => {
@@ -151,8 +150,12 @@ function watchStateFile() {
             mainWindow.webContents.send('state-change', 'idle');
           }, 3000);
         }
+      } else if (data.state === 'done') {
+        // Done with message: send immediately, always
+        clearTimeout(idleDebounceTimer);
+        lastSentState = 'done';
+        mainWindow.webContents.send('state-change', 'done', data.message || '');
       } else {
-        // Work states: send immediately, cancel pending idle
         clearTimeout(idleDebounceTimer);
         if (data.state !== lastSentState) {
           lastSentState = data.state;

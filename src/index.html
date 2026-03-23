@@ -13,11 +13,89 @@
       user-select: none;
     }
     #pet-container {
-      width: 140px;
-      height: 160px;
+      width: 300px;
+      height: 360px;
       position: relative;
       -webkit-app-region: drag;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
     }
+    #pet-svg {
+      flex-shrink: 0;
+    }
+    #bubble-wrap {
+      display: none;
+      position: absolute;
+      bottom: 155px;
+      left: 10px;
+      right: 10px;
+      -webkit-app-region: no-drag;
+      pointer-events: auto;
+    }
+    #bubble-wrap.visible { display: block; animation: bubble-in 0.3s ease-out; }
+    #bubble-close {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      width: 16px;
+      height: 16px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.5);
+      font-size: 10px;
+      line-height: 16px;
+      text-align: center;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1;
+      padding: 0;
+    }
+    #bubble-close:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    #speech-bubble {
+      max-height: 160px;
+      overflow-y: auto;
+      background: rgba(20, 20, 30, 0.85);
+      color: #e8e0d8;
+      font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      padding: 10px 24px 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(196, 135, 106, 0.3);
+      backdrop-filter: blur(8px);
+      word-wrap: break-word;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(196,135,106,0.3) transparent;
+    }
+    #bubble-wrap::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid rgba(20, 20, 30, 0.85);
+    }
+    #speech-bubble::-webkit-scrollbar { width: 4px; }
+    #speech-bubble::-webkit-scrollbar-thumb { background: rgba(196,135,106,0.3); border-radius: 2px; }
+    #speech-bubble.visible { display: block; animation: bubble-in 0.3s ease-out; }
+    #speech-bubble p { margin: 0 0 6px 0; }
+    #speech-bubble p:last-child { margin: 0; }
+    #speech-bubble code { background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; font-size: 10px; }
+    #speech-bubble pre { background: rgba(0,0,0,0.4); padding: 6px 8px; border-radius: 6px; overflow-x: auto; margin: 4px 0; }
+    #speech-bubble pre code { background: none; padding: 0; font-size: 10px; }
+    #speech-bubble strong { color: #C4876A; }
+    #speech-bubble ul, #speech-bubble ol { padding-left: 16px; margin: 4px 0; }
+    #speech-bubble li { margin: 2px 0; }
+    #speech-bubble h1, #speech-bubble h2, #speech-bubble h3 { font-size: 12px; color: #C4876A; margin: 6px 0 3px 0; }
+    #speech-bubble a { color: #7EB8DA; }
+    #speech-bubble .cursor { display: inline-block; width: 6px; height: 12px; background: #C4876A; animation: blink-cursor 0.8s infinite; vertical-align: text-bottom; margin-left: 2px; }
+    @keyframes blink-cursor { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
     #state-label {
       position: absolute;
       bottom: 2px;
@@ -41,6 +119,10 @@
     }
     @keyframes float-in {
       0% { opacity: 0; transform: scale(0.3) translateY(20px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes bubble-in {
+      0% { opacity: 0; transform: scale(0.8) translateY(10px); }
       100% { opacity: 1; transform: scale(1) translateY(0); }
     }
   </style>
@@ -213,8 +295,28 @@
         <text class="zzz-letter" x="122" y="6" font-family="'Courier New'" font-size="7" font-weight="bold" fill="#C4876A" opacity="0.35">z</text>
       </g>
 
+      <!-- Done celebration -->
+      <g id="done-effects" style="display:none;">
+        <!-- Pixel sparkle stars around the pet -->
+        <g class="done-star"><rect x="16" y="18" width="5" height="5" fill="#FFD93D"/></g>
+        <g class="done-star"><rect x="120" y="14" width="5" height="5" fill="#FFD93D"/></g>
+        <g class="done-star"><rect x="8" y="52" width="4" height="4" fill="#FFD93D" opacity="0.8"/></g>
+        <g class="done-star"><rect x="128" y="48" width="4" height="4" fill="#FFD93D" opacity="0.8"/></g>
+        <!-- Pixel checkmark -->
+        <g id="done-check">
+          <rect x="118" y="22" width="4" height="4" fill="#5CB85C"/>
+          <rect x="114" y="26" width="4" height="4" fill="#5CB85C"/>
+          <rect x="122" y="18" width="4" height="4" fill="#5CB85C"/>
+          <rect x="126" y="14" width="4" height="4" fill="#5CB85C"/>
+        </g>
+      </g>
+
     </svg>
 
+    <div id="bubble-wrap">
+      <button id="bubble-close">&times;</button>
+      <div id="speech-bubble"></div>
+    </div>
     <div id="sub-agents"></div>
     <div id="state-label">idle</div>
   </div>

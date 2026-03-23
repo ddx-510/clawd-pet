@@ -46,11 +46,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/user/clawd-pet"
+    "url": "git+https://github.com/ddx-510/clawd-pet.git"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "electron": "^41.0.3"
+    "electron": "^41.0.3",
+    "marked": "^17.0.5"
   }
 }
