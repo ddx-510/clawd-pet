@@ -1,0 +1,56 @@
+{
+  "name": "clawd-pet",
+  "version": "1.0.0",
+  "description": "Clawd - a pixel art desktop pet that reacts to your Claude Code sessions",
+  "main": "src/main.js",
+  "bin": {
+    "clawd": "bin/clawd.js"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build": "electron-builder --mac --win",
+    "generate-icons": "node scripts/generate-tray-icon.js && node scripts/generate-app-icon.js"
+  },
+  "build": {
+    "appId": "com.clawd.pet",
+    "productName": "Clawd",
+    "icon": "assets/icon.png",
+    "mac": {
+      "category": "public.app-category.entertainment",
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "src/**/*",
+      "bin/**/*",
+      "assets/**/*"
+    ]
+  },
+  "files": [
+    "src/",
+    "bin/",
+    "assets/"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "desktop-pet",
+    "clawd",
+    "pixel-art",
+    "electron",
+    "mascot"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/user/clawd-pet"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "electron": "^41.0.3"
+  }
+}
