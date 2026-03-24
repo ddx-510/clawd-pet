@@ -18,13 +18,12 @@ let workingVisual = 'thinking'; // which visual to show during working
 let lastHookState = 'idle';    // track last hook state for drag return
 let isDragging = false;
 
-let danceTimer = null;
 let danceStopTimer = null;
-let sleepTimer = null;
-let lastWorkTime = 0; // last time we were in a work state
+let lastWorkTime = 0;
 let dropTimer = null;
 let doneTimer = null;
-let doneUntil = 0; // timestamp - ignore work hooks until this time
+let doneUntil = 0;
+let sleepUntil = 0; // protect sleep from hook interruption
 
 const petBody   = document.getElementById('pet-body');
 const stateLabel = document.getElementById('state-label');
@@ -56,34 +55,42 @@ function enterIdle() {
   startIdleTimers();
 }
 
+// Single idle poller - randomly picks dance or sleep
+let idlePoller = null;
+let nextIdleAction = 0;
+let hasDancedSinceWork = false; // must dance at least once before sleeping
+
 function startIdleTimers() {
-  clearTimeout(danceTimer);
+  if (idlePoller) return;
 
-  // Dance once after 25-45s (always restart)
-  danceTimer = setTimeout(() => {
-    if (state === 'idle') enterDancing();
-  }, 25000 + Math.random() * 20000);
+  nextIdleAction = Date.now() + 20000 + Math.random() * 20000;
 
-  // Sleep: check every 5s if we've been "mostly idle" for 45s+
-  // (no work state in the last 45s)
-  if (!sleepTimer) {
-    sleepTimer = setInterval(() => {
-      if (state !== 'idle') return;
-      const idleFor = Date.now() - lastWorkTime;
-      if (idleFor > 45000) {
-        clearInterval(sleepTimer);
-        sleepTimer = null;
+  idlePoller = setInterval(() => {
+    if (state !== 'idle') return;
+    const idleFor = Date.now() - lastWorkTime;
+
+    if (idleFor < 15000) {
+      nextIdleAction = Date.now() + 20000 + Math.random() * 20000;
+      return;
+    }
+
+    if (Date.now() >= nextIdleAction) {
+      clearInterval(idlePoller);
+      idlePoller = null;
+
+      if (!hasDancedSinceWork) {
+        enterDancing();
+      } else {
         enterSleeping();
       }
-    }, 5000);
-  }
+    }
+  }, 3000);
 }
 
 function clearIdleTimers() {
-  clearTimeout(danceTimer);
+  clearInterval(idlePoller);
+  idlePoller = null;
   clearTimeout(danceStopTimer);
-  clearInterval(sleepTimer);
-  sleepTimer = null;
 }
 
 // ==========================================
@@ -186,9 +193,7 @@ function streamMessage(text) {
 // ENTER DANCING - 3-4s then back to idle
 // ==========================================
 function enterDancing() {
-  clearTimeout(danceTimer);
-  clearInterval(sleepTimer);
-  sleepTimer = null;
+  clearIdleTimers();
   state = 'dancing';
 
   petBody.className.baseVal = 'dancing';
@@ -198,9 +203,12 @@ function enterDancing() {
   animateSparkles();
   animateDanceLegs();
 
-  // Hard stop
   danceStopTimer = setTimeout(() => {
-    if (state === 'dancing') enterIdle();
+    if (state === 'dancing') {
+      hasDancedSinceWork = true;
+      lastWorkTime = Date.now();
+      enterIdle();
+    }
   }, 3000 + Math.random() * 1500);
 }
 
@@ -215,11 +223,14 @@ function enterSleeping() {
   animateZzz();
   eyeL.setAttribute('height', 3);
   eyeR.setAttribute('height', 3);
+  sleepUntil = Date.now() + 10000; // protect sleep for 10s
   ipcRenderer.send('slide-down');
 }
 
 function wakeUp() {
   if (state !== 'sleeping') return;
+  sleepUntil = 0;
+  hasDancedSinceWork = false;
   zzzFx.style.display = 'none';
   resetEyes();
   ipcRenderer.send('slide-up');
@@ -310,8 +321,9 @@ ipcRenderer.on('state-change', (_, hookState, args) => {
     return;
   }
 
-  // While done is showing, ignore work hooks
+  // Protect done and sleep states from hook interruption
   if (Date.now() < doneUntil) return;
+  if (state === 'sleeping' && Date.now() < sleepUntil) return;
 
   if (hookState === 'idle') {
     if (state === 'working') enterIdle();
@@ -338,7 +350,8 @@ document.getElementById('pet-container').addEventListener('click', (e) => {
 });
 
 function doJump() {
-  lastWorkTime = Date.now(); // reset sleep countdown on interaction
+  lastWorkTime = Date.now();
+  hasDancedSinceWork = false; // user interaction resets the cycle
   const prev = petBody.className.baseVal;
   petBody.className.baseVal = '';
   petBody.style.transition = 'transform 0.15s ease-out';

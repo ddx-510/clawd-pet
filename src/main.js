@@ -36,13 +36,14 @@ function createWindow() {
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
   // Detect drag by polling window position
-  // Compare position every 100ms - if it changed, we're being dragged
-  // If position stable for 600ms, drag ended (user released)
   let lastX = 0, lastY = 0;
   let stableCount = 0;
+  let isSliding = false; // true during programmatic slide animations
 
   setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (isSliding) return; // ignore position changes from slide animation
+
     const [x, y] = mainWindow.getPosition();
     const moved = (x !== lastX || y !== lastY);
     lastX = x;
@@ -52,7 +53,6 @@ function createWindow() {
       stableCount = 0;
       if (!isDragging) {
         isDragging = true;
-        // Send mouse position relative to window so renderer knows grab point
         const point = screen.getCursorScreenPoint();
         const bounds = mainWindow.getBounds();
         mainWindow.webContents.send('drag-start', {
@@ -62,7 +62,6 @@ function createWindow() {
       }
     } else if (isDragging) {
       stableCount++;
-      // 6 * 100ms = 600ms of no movement = drop
       if (stableCount >= 6) {
         isDragging = false;
         mainWindow.webContents.send('drag-end');
@@ -77,19 +76,28 @@ function createWindow() {
   // Slide window down/up for peek/hide behavior
   ipcMain.on('slide-down', () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
+    isSliding = true;
     const bounds = mainWindow.getBounds();
     const { height } = screen.getPrimaryDisplay().workAreaSize;
-    // Slide down so top ~210px hidden, pet eyes peek at bottom
-    const targetY = height - 230;
-    animateWindowY(bounds.y, targetY, 400);
+    const targetY = height - 300;
+    animateWindowY(bounds.y, targetY, 400, () => {
+      isSliding = false;
+      lastX = mainWindow.getPosition()[0];
+      lastY = mainWindow.getPosition()[1];
+    });
   });
 
   ipcMain.on('slide-up', () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
+    isSliding = true;
     const bounds = mainWindow.getBounds();
     const { height } = screen.getPrimaryDisplay().workAreaSize;
     const targetY = height - 380;
-    animateWindowY(bounds.y, targetY, 300);
+    animateWindowY(bounds.y, targetY, 300, () => {
+      isSliding = false;
+      lastX = mainWindow.getPosition()[0];
+      lastY = mainWindow.getPosition()[1];
+    });
   });
 
   // Right-click context menu
@@ -137,21 +145,20 @@ function createWindow() {
 }
 
 // Smooth window slide animation
-function animateWindowY(fromY, toY, duration) {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
+function animateWindowY(fromY, toY, duration, onDone) {
+  if (!mainWindow || mainWindow.isDestroyed()) { if (onDone) onDone(); return; }
   const startTime = Date.now();
   const diff = toY - fromY;
-  if (Math.abs(diff) < 2) return;
+  if (Math.abs(diff) < 2) { if (onDone) onDone(); return; }
 
   function step() {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (!mainWindow || mainWindow.isDestroyed()) { if (onDone) onDone(); return; }
     const elapsed = Date.now() - startTime;
     const t = Math.min(1, elapsed / duration);
-    // Ease out cubic
     const ease = 1 - Math.pow(1 - t, 3);
     const bounds = mainWindow.getBounds();
     mainWindow.setBounds({ x: bounds.x, y: Math.round(fromY + diff * ease), width: bounds.width, height: bounds.height });
-    if (t < 1) setTimeout(step, 16);
+    if (t < 1) { setTimeout(step, 16); } else { if (onDone) onDone(); }
   }
   step();
 }
