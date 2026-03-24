@@ -16,14 +16,17 @@
       width: 300px;
       height: 360px;
       position: relative;
-      -webkit-app-region: drag;
+      -webkit-app-region: no-drag;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-end;
+      pointer-events: none;
     }
     #pet-svg {
       flex-shrink: 0;
+      -webkit-app-region: drag;
+      pointer-events: auto;
     }
     #bubble-wrap {
       display: none;

@@ -1,6 +1,6 @@
 {
   "name": "clawd-pet",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Clawd - a pixel art desktop pet that reacts to your Claude Code sessions",
   "main": "src/main.js",
   "bin": {

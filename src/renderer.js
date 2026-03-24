@@ -442,7 +442,6 @@ document.addEventListener('contextmenu', (e) => {
 });
 
 
-// (no manual mood switching - driven by hooks only)
 
 // ==========================================
 // ANIMATIONS
