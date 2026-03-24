@@ -21,6 +21,7 @@ let isDragging = false;
 let danceTimer = null;
 let danceStopTimer = null;
 let sleepTimer = null;
+let lastWorkTime = 0; // last time we were in a work state
 let dropTimer = null;
 let doneTimer = null;
 let doneUntil = 0; // timestamp - ignore work hooks until this time
@@ -57,23 +58,32 @@ function enterIdle() {
 
 function startIdleTimers() {
   clearTimeout(danceTimer);
-  clearTimeout(sleepTimer);
 
-  // Dance once after 25-45s
+  // Dance once after 25-45s (always restart)
   danceTimer = setTimeout(() => {
     if (state === 'idle') enterDancing();
   }, 25000 + Math.random() * 20000);
 
-  // Sleep after 40-60s (longer than dance so dance happens first)
-  sleepTimer = setTimeout(() => {
-    if (state === 'idle') enterSleeping();
-  }, 40000 + Math.random() * 20000);
+  // Sleep: check every 5s if we've been "mostly idle" for 45s+
+  // (no work state in the last 45s)
+  if (!sleepTimer) {
+    sleepTimer = setInterval(() => {
+      if (state !== 'idle') return;
+      const idleFor = Date.now() - lastWorkTime;
+      if (idleFor > 45000) {
+        clearInterval(sleepTimer);
+        sleepTimer = null;
+        enterSleeping();
+      }
+    }, 5000);
+  }
 }
 
 function clearIdleTimers() {
   clearTimeout(danceTimer);
   clearTimeout(danceStopTimer);
-  clearTimeout(sleepTimer);
+  clearInterval(sleepTimer);
+  sleepTimer = null;
 }
 
 // ==========================================
@@ -82,6 +92,7 @@ function clearIdleTimers() {
 function enterWorking(visual) {
   clearIdleTimers();
   clearTimeout(doneTimer);
+  lastWorkTime = Date.now();
   state = 'working';
   workingVisual = visual;
   applyVisual(visual);
@@ -176,7 +187,8 @@ function streamMessage(text) {
 // ==========================================
 function enterDancing() {
   clearTimeout(danceTimer);
-  clearTimeout(sleepTimer);
+  clearInterval(sleepTimer);
+  sleepTimer = null;
   state = 'dancing';
 
   petBody.className.baseVal = 'dancing';
@@ -326,6 +338,7 @@ document.getElementById('pet-container').addEventListener('click', (e) => {
 });
 
 function doJump() {
+  lastWorkTime = Date.now(); // reset sleep countdown on interaction
   const prev = petBody.className.baseVal;
   petBody.className.baseVal = '';
   petBody.style.transition = 'transform 0.15s ease-out';
