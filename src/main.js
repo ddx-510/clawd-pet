@@ -4,12 +4,13 @@ const fs = require('fs');
 const os = require('os');
 
 const CONFIG_PATH = path.join(os.homedir(), '.clawd-config.json');
-
 const STATE_FILE = '/tmp/claude-pet-state';
 
 let mainWindow;
 let tray;
 let isDragging = false;
+let isSliding = false;
+let lastX = 0, lastY = 0;
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -36,13 +37,10 @@ function createWindow() {
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
   // Detect drag by polling window position
-  let lastX = 0, lastY = 0;
   let stableCount = 0;
-  let isSliding = false; // true during programmatic slide animations
 
   setInterval(() => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    if (isSliding) return; // ignore position changes from slide animation
+    if (!mainWindow || mainWindow.isDestroyed() || isSliding) return;
 
     const [x, y] = mainWindow.getPosition();
     const moved = (x !== lastX || y !== lastY);
@@ -73,7 +71,7 @@ function createWindow() {
     mainWindow.webContents.send('state-change', state);
   });
 
-  // Slide window down/up for peek/hide behavior
+  // Slide window down/up for sleep
   ipcMain.on('slide-down', () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     isSliding = true;
@@ -163,9 +161,7 @@ function animateWindowY(fromY, toY, duration, onDone) {
   step();
 }
 
-// Watch the state file written by Claude Code hooks
-// Debounce idle: only send 'idle' after 3s of no other state changes.
-// Work states (thinking/composing/etc) are sent immediately.
+// Watch state file from hooks
 function watchStateFile() {
   if (!fs.existsSync(STATE_FILE)) {
     fs.writeFileSync(STATE_FILE, JSON.stringify({ state: 'idle', timestamp: Date.now() }));
@@ -192,7 +188,6 @@ function watchStateFile() {
           }, 3000);
         }
       } else if (data.state === 'done') {
-        // Done with message: send immediately, always
         clearTimeout(idleDebounceTimer);
         lastSentState = 'done';
         mainWindow.webContents.send('state-change', 'done', data.message || '');

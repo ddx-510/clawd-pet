@@ -30,15 +30,23 @@ const stateLabel = document.getElementById('state-label');
 const eyeL      = document.getElementById('eye-left');
 const eyeR      = document.getElementById('eye-right');
 const legs      = document.querySelectorAll('.leg');
-const thinkBub  = document.getElementById('think-bubbles');
-const clipboard = document.getElementById('plan-clipboard');
-const pencil    = document.getElementById('compose-pencil');
-const sparkles  = document.getElementById('dance-sparkles');
-const dragFx    = document.getElementById('drag-effects');
-const dropFx    = document.getElementById('drop-effects');
-const zzzFx     = document.getElementById('zzz-effects');
-const doneFx    = document.getElementById('done-effects');
-const subAgents = document.getElementById('sub-agents');
+const thinkBub   = document.getElementById('think-bubbles');
+const clipboard  = document.getElementById('plan-clipboard');
+const pencil     = document.getElementById('compose-pencil');
+const sparkles   = document.getElementById('dance-sparkles');
+const dragFx     = document.getElementById('drag-effects');
+const dropFx     = document.getElementById('drop-effects');
+const zzzFx      = document.getElementById('zzz-effects');
+const doneFx     = document.getElementById('done-effects');
+const errorFx    = document.getElementById('error-effects');
+const alertFx    = document.getElementById('alert-effects');
+const typingFx   = document.getElementById('typing-effects');
+const buildingFx = document.getElementById('building-effects');
+const juggleFx   = document.getElementById('juggle-effects');
+const conductFx  = document.getElementById('conduct-effects');
+const sweepFx    = document.getElementById('sweep-effects');
+const carryFx    = document.getElementById('carry-effects');
+const subAgents  = document.getElementById('sub-agents');
 const bubbleWrap = document.getElementById('bubble-wrap');
 const bubble     = document.getElementById('speech-bubble');
 const bubbleClose = document.getElementById('bubble-close');
@@ -261,6 +269,18 @@ function applyVisual(visual) {
       eyeL.setAttribute('y', L_EYE_Y - 2);
       eyeR.setAttribute('y', R_EYE_Y - 2);
       break;
+    case 'typing':
+      stateLabel.textContent = 'typing';
+      typingFx.style.display = 'block';
+      animateFloating(typingFx, '.key-float');
+      eyeL.setAttribute('x', L_EYE_X + 2);
+      eyeR.setAttribute('x', R_EYE_X + 2);
+      break;
+    case 'building':
+      stateLabel.textContent = 'building';
+      buildingFx.style.display = 'block';
+      animateFloating(buildingFx, '.build-block');
+      break;
     case 'composing':
       stateLabel.textContent = 'composing';
       pencil.style.display = 'block';
@@ -273,6 +293,42 @@ function applyVisual(visual) {
       eyeL.setAttribute('x', L_EYE_X - 2);
       eyeR.setAttribute('x', R_EYE_X - 2);
       break;
+    case 'juggling':
+      stateLabel.textContent = 'juggling';
+      juggleFx.style.display = 'block';
+      animateJuggle();
+      break;
+    case 'conducting':
+      stateLabel.textContent = 'conducting';
+      conductFx.style.display = 'block';
+      spawnSubAgents();
+      break;
+    case 'error':
+      stateLabel.textContent = 'error!';
+      errorFx.style.display = 'block';
+      animateSmoke();
+      // Squinty >< eyes
+      eyeL.setAttribute('height', 3);
+      eyeR.setAttribute('height', 3);
+      break;
+    case 'alert':
+      stateLabel.textContent = 'notice!';
+      alertFx.style.display = 'block';
+      // Wide eyes
+      eyeL.setAttribute('y', L_EYE_Y - 3);
+      eyeR.setAttribute('y', R_EYE_Y - 3);
+      break;
+    case 'sweeping':
+      stateLabel.textContent = 'sweeping';
+      sweepFx.style.display = 'block';
+      animateFloating(sweepFx, '.dust');
+      eyeL.setAttribute('x', L_EYE_X - 2);
+      eyeR.setAttribute('x', R_EYE_X - 2);
+      break;
+    case 'carrying':
+      stateLabel.textContent = 'carrying';
+      carryFx.style.display = 'block';
+      break;
     case 'subagents':
       stateLabel.textContent = 'friends!';
       spawnSubAgents();
@@ -281,14 +337,9 @@ function applyVisual(visual) {
 }
 
 function clearVisual() {
-  thinkBub.style.display = 'none';
-  clipboard.style.display = 'none';
-  pencil.style.display = 'none';
-  sparkles.style.display = 'none';
-  dragFx.style.display = 'none';
-  dropFx.style.display = 'none';
-  zzzFx.style.display = 'none';
-  doneFx.style.display = 'none';
+  [thinkBub, clipboard, pencil, sparkles, dragFx, dropFx, zzzFx, doneFx,
+   errorFx, alertFx, typingFx, buildingFx, juggleFx, conductFx, sweepFx, carryFx
+  ].forEach(el => { if (el) el.style.display = 'none'; });
   hideBubble();
   clearInterval(streamInterval);
   subAgents.innerHTML = '';
@@ -341,9 +392,9 @@ ipcRenderer.on('state-change', (_, hookState, args) => {
 });
 
 // ==========================================
-// CLICK - jump or wake up
+// CLICK - jump or wake up (via overlay that isn't swallowed by drag region)
 // ==========================================
-document.getElementById('pet-container').addEventListener('click', (e) => {
+document.getElementById('click-overlay').addEventListener('click', (e) => {
   if (isDragging) return;
   if (state === 'sleeping') { wakeUp(); return; }
   doJump();
@@ -519,6 +570,40 @@ function animateDoneStars() {
   requestAnimationFrame(animateDoneStars);
 }
 
+// Generic floating animation for elements with a selector
+function animateFloating(container, selector) {
+  if (!container || container.style.display === 'none') return;
+  container.querySelectorAll(selector).forEach((el, i) => {
+    const t = Date.now() / 400 + i * 1.5;
+    el.setAttribute('transform', `translate(${Math.cos(t * 0.7) * 3}, ${Math.sin(t) * 4})`);
+    el.setAttribute('opacity', Math.max(0.2, 0.5 + Math.sin(t) * 0.3));
+  });
+  requestAnimationFrame(() => animateFloating(container, selector));
+}
+
+function animateJuggle() {
+  if (!juggleFx || juggleFx.style.display === 'none') return;
+  juggleFx.querySelectorAll('.juggle-orb').forEach((orb, i) => {
+    const t = Date.now() / 300 + i * 2.1;
+    const x = Math.cos(t) * 25;
+    const y = Math.sin(t * 2) * 10 - 15;
+    orb.setAttribute('cx', 70 + x);
+    orb.setAttribute('cy', 18 + y);
+  });
+  requestAnimationFrame(animateJuggle);
+}
+
+function animateSmoke() {
+  if (!errorFx || errorFx.style.display === 'none') return;
+  errorFx.querySelectorAll('rect[fill="#888"]').forEach((r, i) => {
+    const t = Date.now() / 500 + i * 0.8;
+    const dy = Math.sin(t) * 3 - 2;
+    r.setAttribute('transform', `translate(0, ${dy})`);
+    r.setAttribute('opacity', 0.2 + Math.sin(t * 0.7) * 0.2);
+  });
+  requestAnimationFrame(animateSmoke);
+}
+
 // ==========================================
 // SUB-AGENTS
 // ==========================================
@@ -650,6 +735,7 @@ function updateFoodBar() {
 // Poll food file
 initFoodBar();
 setInterval(updateFoodBar, 1000);
+
 
 // ==========================================
 // INIT

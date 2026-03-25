@@ -16,10 +16,15 @@ const HOOK_EVENTS = [
   'UserPromptSubmit',
   'PreToolUse',
   'PostToolUse',
+  'PostToolUseFailure',
   'Stop',
   'SubagentStart',
   'SubagentStop',
   'Notification',
+  'PermissionRequest',
+  'PreCompact',
+  'PostCompact',
+  'WorktreeCreate',
 ];
 
 // --- Config ---
@@ -141,6 +146,40 @@ async function main() {
     process.exit(0);
   }
 
+  if (args.includes('--upgrade') || args.includes('-u') || args[0] === 'upgrade') {
+    console.log('  Upgrading clawd-pet...');
+    try {
+      require('child_process').execSync('npm install -g clawd-pet@latest', { stdio: 'inherit' });
+      console.log('  Upgraded! Run `clawd` to launch.');
+    } catch (e) {
+      console.error('  Upgrade failed. Try: npm install -g clawd-pet@latest');
+    }
+    process.exit(0);
+  }
+
+  if (args[0] === 'debug') {
+    console.log('  Debug mode: cycling through all states...');
+    const states = [
+      'idle', 'thinking', 'typing', 'building', 'planning',
+      'juggling', 'conducting', 'error', 'alert',
+      'sweeping', 'carrying', 'dancing', 'done',
+    ];
+    let i = 0;
+    setInterval(() => {
+      const s = states[i % states.length];
+      const data = { state: s, timestamp: Date.now() };
+      if (s === 'done') data.message = '**Debug!** Testing `done` state with *markdown*.';
+      require('fs').writeFileSync('/tmp/claude-pet-state', JSON.stringify(data));
+      console.log(`  -> ${s}`);
+      i++;
+    }, 3000);
+    // Launch electron too
+    const electronPath = require('electron');
+    const child = spawn(electronPath, [path.join(__dirname, '..')], { stdio: 'ignore', detached: true });
+    child.unref();
+    return; // keep process alive for the interval
+  }
+
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
   clawd v${PKG.version} - Claude Code desktop pet
@@ -149,6 +188,8 @@ async function main() {
     clawd                  Launch the pet
     clawd name <name>      Name your pet
     clawd name             Show current name
+    clawd debug            Cycle through all animations
+    clawd upgrade, -u      Upgrade to latest version
     clawd uninstall        Remove hooks
     clawd -v, --version    Show version
     clawd -h, --help       Show this help

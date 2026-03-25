@@ -28,6 +28,19 @@
       -webkit-app-region: drag;
       pointer-events: auto;
     }
+    #click-overlay {
+      position: absolute;
+      bottom: 45px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 50px;
+      -webkit-app-region: no-drag;
+      pointer-events: auto;
+      cursor: pointer;
+      z-index: 10;
+      /* transparent clickable zone over the pet's body */
+    }
     #bubble-wrap {
       display: none;
       position: absolute;
@@ -229,14 +242,67 @@
             100% { transform: scaleY(1) scaleX(1) translateY(0); }
           }
 
-          #pet-body.idle      { animation: breathe 3s ease-in-out infinite; }
-          #pet-body.dancing    { animation: bounce 0.45s ease-in-out infinite; }
-          #pet-body.thinking   { animation: think-bob 2.5s ease-in-out infinite; }
-          #pet-body.composing  { animation: compose-nod 1.8s ease-in-out infinite; }
-          #pet-body.planning   { animation: plan-look 3s ease-in-out infinite; }
-          #pet-body.subagents  { animation: sway 2s ease-in-out infinite; }
-          #pet-body.dragging   { animation: carried 0.6s ease-in-out infinite; }
-          #pet-body.dropped    { animation: squish-land 0.4s ease-out forwards; }
+          @keyframes typing-nod {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-2px) rotate(-1deg); }
+            75% { transform: translateY(-1px) rotate(1deg); }
+          }
+          @keyframes building-shake {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            20% { transform: translateY(-2px) rotate(-2deg); }
+            40% { transform: translateY(0) rotate(1deg); }
+            60% { transform: translateY(-1px) rotate(-1deg); }
+            80% { transform: translateY(0) rotate(2deg); }
+          }
+          @keyframes juggle-sway {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-8deg); }
+            75% { transform: rotate(8deg); }
+          }
+          @keyframes conduct-wave {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-3px) rotate(-5deg); }
+            50% { transform: translateY(0) rotate(0deg); }
+            75% { transform: translateY(-3px) rotate(5deg); }
+          }
+          @keyframes error-shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-4px); }
+            40% { transform: translateX(4px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(2px); }
+          }
+          @keyframes alert-jump {
+            0%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-12px); }
+            50% { transform: translateY(0); }
+            70% { transform: translateY(-6px); }
+          }
+          @keyframes sweep-move {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            50% { transform: translateX(5px) rotate(3deg); }
+          }
+          @keyframes carry-walk {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-3px) rotate(2deg); }
+          }
+
+          #pet-body.idle       { animation: breathe 3s ease-in-out infinite; }
+          #pet-body.dancing     { animation: bounce 0.45s ease-in-out infinite; }
+          #pet-body.thinking    { animation: think-bob 2.5s ease-in-out infinite; }
+          #pet-body.typing      { animation: typing-nod 0.6s ease-in-out infinite; }
+          #pet-body.building    { animation: building-shake 0.4s ease-in-out infinite; }
+          #pet-body.planning    { animation: plan-look 3s ease-in-out infinite; }
+          #pet-body.juggling    { animation: juggle-sway 0.5s ease-in-out infinite; }
+          #pet-body.conducting  { animation: conduct-wave 0.8s ease-in-out infinite; }
+          #pet-body.error       { animation: error-shake 0.3s ease-in-out infinite; }
+          #pet-body.alert       { animation: alert-jump 0.5s ease-in-out infinite; }
+          #pet-body.sweeping    { animation: sweep-move 0.8s ease-in-out infinite; }
+          #pet-body.carrying    { animation: carry-walk 0.6s ease-in-out infinite; }
+          #pet-body.composing   { animation: compose-nod 1.8s ease-in-out infinite; }
+          #pet-body.subagents   { animation: sway 2s ease-in-out infinite; }
+          #pet-body.dragging    { animation: carried 0.6s ease-in-out infinite; }
+          #pet-body.dropped     { animation: squish-land 0.4s ease-out forwards; }
         </style>
       </defs>
 
@@ -361,6 +427,76 @@
         </g>
       </g>
 
+      <!-- ERROR: smoke puffs + "ERROR" text -->
+      <g id="error-effects" style="display:none;">
+        <rect x="20" y="14" width="8" height="8" fill="#888" opacity="0.4"/>
+        <rect x="12" y="8" width="6" height="6" fill="#888" opacity="0.3"/>
+        <rect x="112" y="12" width="8" height="8" fill="#888" opacity="0.4"/>
+        <rect x="120" y="6" width="6" height="6" fill="#888" opacity="0.3"/>
+        <text x="70" y="18" text-anchor="middle" font-family="'Courier New'" font-size="10" font-weight="bold" fill="#D9534F">ERROR</text>
+      </g>
+
+      <!-- ALERT: exclamation mark -->
+      <g id="alert-effects" style="display:none;">
+        <rect x="66" y="4" width="8" height="14" fill="#F0AD4E" rx="1"/>
+        <rect x="66" y="21" width="8" height="6" fill="#F0AD4E" rx="1"/>
+      </g>
+
+      <!-- TYPING: floating key-caps -->
+      <g id="typing-effects" style="display:none;">
+        <g class="key-float">
+          <rect x="8" y="30" width="10" height="10" fill="#FFF5EB" rx="1" stroke="#DDD" stroke-width="0.5"/>
+          <text x="13" y="38" text-anchor="middle" font-family="'Courier New'" font-size="6" fill="#666">A</text>
+        </g>
+        <g class="key-float">
+          <rect x="122" y="26" width="10" height="10" fill="#FFF5EB" rx="1" stroke="#DDD" stroke-width="0.5"/>
+          <text x="127" y="34" text-anchor="middle" font-family="'Courier New'" font-size="6" fill="#666">Z</text>
+        </g>
+      </g>
+
+      <!-- BUILDING: hammer + pixel blocks -->
+      <g id="building-effects" style="display:none;">
+        <!-- Hammer -->
+        <rect x="120" y="30" width="4" height="16" fill="#8B6D50"/>
+        <rect x="116" y="26" width="12" height="6" fill="#888"/>
+        <!-- Pixel blocks -->
+        <g class="build-block"><rect x="8" y="70" width="7" height="7" fill="#7EB8DA" opacity="0.7"/></g>
+        <g class="build-block"><rect x="15" y="63" width="7" height="7" fill="#A8D5A2" opacity="0.7"/></g>
+        <g class="build-block"><rect x="8" y="63" width="7" height="7" fill="#DDA0DD" opacity="0.7"/></g>
+      </g>
+
+      <!-- JUGGLING: floating orbs -->
+      <g id="juggle-effects" style="display:none;">
+        <circle class="juggle-orb" cx="30" cy="18" r="5" fill="#7EB8DA"/>
+        <circle class="juggle-orb" cx="70" cy="10" r="5" fill="#A8D5A2"/>
+        <circle class="juggle-orb" cx="110" cy="18" r="5" fill="#DDA0DD"/>
+      </g>
+
+      <!-- CONDUCTING: baton -->
+      <g id="conduct-effects" style="display:none;">
+        <rect id="baton" x="116" y="28" width="3" height="20" fill="#333" transform="rotate(-20 117 38)"/>
+        <circle cx="117" cy="27" r="3" fill="#FFD93D"/>
+      </g>
+
+      <!-- SWEEPING: broom -->
+      <g id="sweep-effects" style="display:none;">
+        <rect x="10" y="40" width="3" height="30" fill="#8B6D50"/>
+        <rect x="4" y="68" width="15" height="6" fill="#A08060"/>
+        <rect x="4" y="74" width="15" height="3" fill="#8B6D50"/>
+        <!-- Dust particles -->
+        <g class="dust"><rect x="22" y="72" width="3" height="3" fill="#DDD" opacity="0.4"/></g>
+        <g class="dust"><rect x="28" y="68" width="2" height="2" fill="#DDD" opacity="0.3"/></g>
+        <g class="dust"><rect x="18" y="68" width="2" height="2" fill="#DDD" opacity="0.3"/></g>
+      </g>
+
+      <!-- CARRYING: box -->
+      <g id="carry-effects" style="display:none;">
+        <rect x="46" y="10" width="48" height="30" fill="#D4A76A" rx="2"/>
+        <rect x="46" y="10" width="48" height="30" fill="none" stroke="#B8904E" stroke-width="1.5" rx="2"/>
+        <rect x="46" y="22" width="48" height="2" fill="#B8904E"/>
+        <text x="70" y="20" text-anchor="middle" font-family="'Courier New'" font-size="8" fill="#8B6D50">GIT</text>
+      </g>
+
     </svg>
 
     <div id="rename-overlay">
@@ -370,6 +506,7 @@
       <button id="bubble-close">&times;</button>
       <div id="speech-bubble"></div>
     </div>
+    <div id="click-overlay"></div>
     <div id="sub-agents"></div>
     <div id="status-bar">
       <span id="pet-name">Clawd</span>
