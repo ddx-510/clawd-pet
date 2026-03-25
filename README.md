@@ -1,5 +1,9 @@
 # Clawd
 
+<p align="center">
+  <img src="assets/clawd-banner.svg" alt="Clawd - A pixel art desktop pet for Claude Code" width="700" />
+</p>
+
 A pixel art desktop pet that reacts to your Claude Code sessions in real-time.
 
 Clawd sits on your screen, watches your mouse, and responds to what Claude Code is doing - thinking, composing, planning, or coordinating sub-agents. When idle, it dances occasionally and eventually falls asleep until you click to wake it up. When Claude finishes, a speech bubble streams the response with markdown rendering.

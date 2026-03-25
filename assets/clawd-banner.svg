@@ -1,0 +1,189 @@
+<svg width="800" height="400" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <defs>
+    <style>
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+      @keyframes blink {
+        0%, 42%, 46%, 100% { height: 14px; }
+        44% { height: 3px; }
+      }
+      @keyframes sparkle1 {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.9; }
+      }
+      @keyframes sparkle2 {
+        0%, 100% { opacity: 0.7; }
+        50% { opacity: 0.2; }
+      }
+      @keyframes zzz1 {
+        0%, 100% { opacity: 0.6; transform: translate(0, 0); }
+        50% { opacity: 0.3; transform: translate(2px, -4px); }
+      }
+      @keyframes zzz2 {
+        0%, 100% { opacity: 0.4; transform: translate(0, 0); }
+        50% { opacity: 0.2; transform: translate(3px, -5px); }
+      }
+      @keyframes legDance {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+      }
+      @keyframes friendBob {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+      }
+      .title { font-family: 'SF Mono', 'Courier New', monospace; font-weight: bold; fill: #e8e0d8; }
+      .subtitle { font-family: 'SF Mono', 'Courier New', monospace; fill: #9a958f; }
+      .badge { font-family: 'SF Mono', 'Courier New', monospace; font-size: 11px; fill: #2D2D3D; font-weight: bold; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="400" fill="#1E1E2E" rx="16"/>
+
+  <!-- Subtle grid pattern -->
+  <g opacity="0.03">
+    <line x1="0" y1="0" x2="0" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="40" y1="0" x2="40" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="80" y1="0" x2="80" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="120" y1="0" x2="120" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="160" y1="0" x2="160" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="200" y1="0" x2="200" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="240" y1="0" x2="240" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="280" y1="0" x2="280" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="320" y1="0" x2="320" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="360" y1="0" x2="360" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="400" y1="0" x2="400" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="40" x2="800" y2="40" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="80" x2="800" y2="80" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="120" x2="800" y2="120" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="160" x2="800" y2="160" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="200" x2="800" y2="200" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="240" x2="800" y2="240" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="280" x2="800" y2="280" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="320" x2="800" y2="320" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="360" x2="800" y2="360" stroke="#fff" stroke-width="1"/>
+  </g>
+
+  <!-- ============ MAIN CLAWD (center, floating) ============ -->
+  <g transform="translate(320, 80)" style="animation: float 3s ease-in-out infinite">
+    <!-- Body -->
+    <rect x="28" y="14" width="98" height="10" fill="#C4876A"/>
+    <rect x="18" y="24" width="118" height="10" fill="#C4876A"/>
+    <rect x="18" y="34" width="118" height="10" fill="#C4876A"/>
+    <rect x="18" y="44" width="118" height="10" fill="#C4876A"/>
+    <rect x="18" y="54" width="118" height="10" fill="#C4876A"/>
+    <rect x="18" y="64" width="118" height="10" fill="#C4876A"/>
+    <rect x="28" y="74" width="98" height="10" fill="#C4876A"/>
+    <!-- Nubs -->
+    <rect x="0" y="34" width="18" height="10" fill="#C4876A"/>
+    <rect x="0" y="44" width="18" height="10" fill="#C4876A"/>
+    <rect x="136" y="34" width="18" height="10" fill="#C4876A"/>
+    <rect x="136" y="44" width="18" height="10" fill="#C4876A"/>
+    <!-- Eyes -->
+    <rect x="48" y="44" width="10" height="14" fill="#3B2318" style="animation: blink 4s ease-in-out infinite"/>
+    <rect x="96" y="44" width="10" height="14" fill="#3B2318" style="animation: blink 4s ease-in-out infinite; animation-delay: 0.1s"/>
+    <!-- Legs -->
+    <rect x="28" y="84" width="10" height="18" fill="#7B5040"/>
+    <rect x="48" y="84" width="10" height="24" fill="#7B5040" style="animation: legDance 0.8s ease-in-out infinite"/>
+    <rect x="96" y="84" width="10" height="24" fill="#7B5040" style="animation: legDance 0.8s ease-in-out infinite; animation-delay: 0.2s"/>
+    <rect x="116" y="84" width="10" height="18" fill="#7B5040"/>
+  </g>
+
+  <!-- Sparkle decorations -->
+  <rect x="280" y="90" width="8" height="8" fill="#FFD93D" style="animation: sparkle1 2s ease-in-out infinite"/>
+  <rect x="510" y="80" width="6" height="6" fill="#FF8C94" style="animation: sparkle2 2.5s ease-in-out infinite"/>
+  <rect x="300" y="180" width="5" height="5" fill="#FFD93D" style="animation: sparkle2 1.8s ease-in-out infinite"/>
+  <rect x="495" y="175" width="7" height="7" fill="#FF8C94" style="animation: sparkle1 2.2s ease-in-out infinite"/>
+
+  <!-- ============ MINI FRIENDS (bottom left) ============ -->
+  <!-- Scout (blue) -->
+  <g transform="translate(80, 260)" style="animation: friendBob 2s ease-in-out infinite">
+    <rect x="8" y="4" width="20" height="4" fill="#7EB8DA"/>
+    <rect x="4" y="8" width="28" height="4" fill="#7EB8DA"/>
+    <rect x="4" y="12" width="28" height="4" fill="#7EB8DA"/>
+    <rect x="4" y="16" width="28" height="4" fill="#7EB8DA"/>
+    <rect x="8" y="20" width="20" height="4" fill="#7EB8DA"/>
+    <rect x="0" y="10" width="4" height="6" fill="#7EB8DA"/>
+    <rect x="32" y="10" width="4" height="6" fill="#7EB8DA"/>
+    <rect x="10" y="14" width="4" height="4" fill="#2D1B14"/>
+    <rect x="22" y="14" width="4" height="4" fill="#2D1B14"/>
+    <rect x="10" y="24" width="4" height="7" fill="#5A8FAF"/>
+    <rect x="18" y="24" width="4" height="8" fill="#5A8FAF"/>
+    <rect x="26" y="24" width="4" height="7" fill="#5A8FAF"/>
+    <text x="18" y="42" text-anchor="middle" font-family="'Courier New'" font-size="9" fill="#5A8FAF" font-weight="bold">Scout</text>
+  </g>
+
+  <!-- Coder (green) -->
+  <g transform="translate(155, 255)" style="animation: friendBob 2s ease-in-out infinite; animation-delay: 0.3s">
+    <rect x="8" y="4" width="20" height="4" fill="#A8D5A2"/>
+    <rect x="4" y="8" width="28" height="4" fill="#A8D5A2"/>
+    <rect x="4" y="12" width="28" height="4" fill="#A8D5A2"/>
+    <rect x="4" y="16" width="28" height="4" fill="#A8D5A2"/>
+    <rect x="8" y="20" width="20" height="4" fill="#A8D5A2"/>
+    <rect x="0" y="10" width="4" height="6" fill="#A8D5A2"/>
+    <rect x="32" y="10" width="4" height="6" fill="#A8D5A2"/>
+    <rect x="10" y="14" width="4" height="4" fill="#2D1B14"/>
+    <rect x="22" y="14" width="4" height="4" fill="#2D1B14"/>
+    <rect x="10" y="24" width="4" height="7" fill="#7BAF75"/>
+    <rect x="18" y="24" width="4" height="8" fill="#7BAF75"/>
+    <rect x="26" y="24" width="4" height="7" fill="#7BAF75"/>
+    <text x="18" y="42" text-anchor="middle" font-family="'Courier New'" font-size="9" fill="#7BAF75" font-weight="bold">Coder</text>
+  </g>
+
+  <!-- ============ SLEEPING CLAWD (bottom right) ============ -->
+  <g transform="translate(600, 270)">
+    <!-- Body (same shape, squished eyes) -->
+    <rect x="14" y="8" width="50" height="6" fill="#C4876A"/>
+    <rect x="8" y="14" width="62" height="6" fill="#C4876A"/>
+    <rect x="8" y="20" width="62" height="6" fill="#C4876A"/>
+    <rect x="8" y="26" width="62" height="6" fill="#C4876A"/>
+    <rect x="8" y="32" width="62" height="6" fill="#C4876A"/>
+    <rect x="14" y="38" width="50" height="6" fill="#C4876A"/>
+    <!-- Nubs -->
+    <rect x="0" y="20" width="8" height="6" fill="#C4876A"/>
+    <rect x="0" y="26" width="8" height="6" fill="#C4876A"/>
+    <rect x="70" y="20" width="8" height="6" fill="#C4876A"/>
+    <rect x="70" y="26" width="8" height="6" fill="#C4876A"/>
+    <!-- Sleepy eyes (squished) -->
+    <rect x="24" y="26" width="6" height="3" fill="#3B2318"/>
+    <rect x="48" y="26" width="6" height="3" fill="#3B2318"/>
+    <!-- Legs -->
+    <rect x="18" y="44" width="6" height="8" fill="#7B5040"/>
+    <rect x="28" y="44" width="6" height="10" fill="#7B5040"/>
+    <rect x="44" y="44" width="6" height="10" fill="#7B5040"/>
+    <rect x="54" y="44" width="6" height="8" fill="#7B5040"/>
+    <!-- Zzz -->
+    <text x="68" y="12" font-family="'Courier New'" font-size="14" font-weight="bold" fill="#C4876A" opacity="0.6" style="animation: zzz1 2.5s ease-in-out infinite">z</text>
+    <text x="78" y="2" font-family="'Courier New'" font-size="10" font-weight="bold" fill="#C4876A" opacity="0.4" style="animation: zzz2 2.5s ease-in-out infinite; animation-delay: 0.5s">z</text>
+    <text x="40" y="66" text-anchor="middle" font-family="'Courier New'" font-size="9" fill="#9a958f">sleeping</text>
+  </g>
+
+  <!-- ============ TEXT ============ -->
+  <text x="400" y="240" text-anchor="middle" class="title" font-size="48">Clawd</text>
+  <text x="400" y="270" text-anchor="middle" class="subtitle" font-size="16">A pixel art desktop pet for Claude Code</text>
+
+  <!-- Feature badges -->
+  <g transform="translate(190, 295)">
+    <rect x="0" y="0" width="90" height="24" fill="#C4876A" rx="12"/>
+    <text x="45" y="16" text-anchor="middle" class="badge">thinking</text>
+  </g>
+  <g transform="translate(295, 295)">
+    <rect x="0" y="0" width="90" height="24" fill="#A8D5A2" rx="12"/>
+    <text x="45" y="16" text-anchor="middle" class="badge">composing</text>
+  </g>
+  <g transform="translate(400, 295)">
+    <rect x="0" y="0" width="90" height="24" fill="#7EB8DA" rx="12"/>
+    <text x="45" y="16" text-anchor="middle" class="badge">planning</text>
+  </g>
+  <g transform="translate(505, 295)">
+    <rect x="0" y="0" width="90" height="24" fill="#DDA0DD" rx="12"/>
+    <text x="45" y="16" text-anchor="middle" class="badge">friends!</text>
+  </g>
+
+  <!-- Install command -->
+  <rect x="240" y="340" width="320" height="36" fill="#2D2D3D" rx="8" stroke="#3D3D4D" stroke-width="1"/>
+  <text x="260" y="363" font-family="'SF Mono', 'Courier New', monospace" font-size="14" fill="#5CB85C">$</text>
+  <text x="280" y="363" font-family="'SF Mono', 'Courier New', monospace" font-size="14" fill="#e8e0d8">npm install -g clawd-pet</text>
+</svg>
